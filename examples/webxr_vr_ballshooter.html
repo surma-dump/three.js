@@ -16,6 +16,7 @@
 		</div>
 
 		<script src="js/vr/HelioWebXRPolyfill.js"></script>
+		<script src="js/comlink.js"></script>
 
 		<script type="module">
 			import * as THREE from "../build/three.module.js";
@@ -28,7 +29,7 @@
 
 			var room;
 
-			// Field of Vie3
+			// Field of View
 			var fov = 50;
 			// Number of balls;
 			var ballCount = 200;
@@ -44,11 +45,17 @@
 			var count = 0;
 
 			var clock = new THREE.Clock();
+			var worker = new Worker("./webxr_vr_ballshooter/worker.js");
+			var BallShooter = Comlink.wrap(worker);
+			var ballShooter;
 
-			init();
-			animate();
+			init().then(() => animate());
 
-			function init() {
+			async function init() {
+				ballShooter = await new BallShooter({
+					numBalls: ballCount,
+					roomSize
+				});
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color(0x505050);
 
@@ -72,6 +79,7 @@
 				scene.add(light);
 
 				var geometry = new THREE.IcosahedronBufferGeometry(radius, 2);
+				var positions = new Float32Array(await ballShooter.getPositions());
 
 				for (var i = 0; i < ballCount; i++) {
 					var object = new THREE.Mesh(
@@ -79,17 +87,13 @@
 						new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff })
 					);
 
-					object.position.x = random(-roomSize / 2 + 1, roomSize / 2 - 1);
-					object.position.y = random(0, roomSize);
-					object.position.z = random(-roomSize / 2 + 1, roomSize / 2 - 1);
-
-					object.userData.velocity = new THREE.Vector3();
-					object.userData.velocity.x = random(-0.005, 0.005);
-					object.userData.velocity.y = random(-0.005, 0.005);
-					object.userData.velocity.z = random(-0.005, 0.005);
+					object.position.x = positions[i * 3 + 0];
+					object.position.y = positions[i * 3 + 1];
+					object.position.z = positions[i * 3 + 2];
 
 					room.add(object);
 				}
+				ballShooter.put(Comlink.transfer(positions, [positions.buffer]));
 
 				//
 
@@ -210,7 +214,7 @@
 				var delta = clock.getDelta(); // * 0.8; // slow down simulation
 
 				var range = roomSize / 2 - radius;
-
+				/*
 				for (var i = 0; i < room.children.length; i++) {
 					var object = room.children[i];
 
@@ -277,7 +281,7 @@
 
 					// Gravity
 					object.userData.velocity.y -= 9.8 * delta;
-				}
+				}*/
 
 				renderer.render(scene, camera);
 			}
