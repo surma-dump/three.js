@@ -28,10 +28,20 @@
 
 			var room;
 
-			var count = 0;
+			// Field of Vie3
+			var fov = 50;
+			// Number of balls;
+			var ballCount = 200;
+			// Radius of one ball
 			var radius = 0.08;
+			// Size of the room
+			var roomSize = 6;
+			// Loss of velocity when bouncing of walls
+			var dampening = 0.8;
+
 			var normal = new THREE.Vector3();
 			var relativeVelocity = new THREE.Vector3();
+			var count = 0;
 
 			var clock = new THREE.Clock();
 
@@ -43,7 +53,7 @@
 				scene.background = new THREE.Color(0x505050);
 
 				camera = new THREE.PerspectiveCamera(
-					50,
+					fov,
 					window.innerWidth / window.innerHeight,
 					0.1,
 					10
@@ -51,10 +61,10 @@
 				camera.position.set(0, 1.6, 3);
 
 				room = new THREE.LineSegments(
-					new BoxLineGeometry(6, 6, 6, 10, 10, 10),
+					new BoxLineGeometry(roomSize, roomSize, roomSize, 10, 10, 10),
 					new THREE.LineBasicMaterial({ color: 0x808080 })
 				);
-				room.geometry.translate(0, 3, 0);
+				room.geometry.translate(0, roomSize / 2, 0);
 				scene.add(room);
 
 				var light = new THREE.HemisphereLight(0xffffff, 0x444444);
@@ -63,20 +73,20 @@
 
 				var geometry = new THREE.IcosahedronBufferGeometry(radius, 2);
 
-				for (var i = 0; i < 200; i++) {
+				for (var i = 0; i < ballCount; i++) {
 					var object = new THREE.Mesh(
 						geometry,
 						new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff })
 					);
 
-					object.position.x = Math.random() * 4 - 2;
-					object.position.y = Math.random() * 4;
-					object.position.z = Math.random() * 4 - 2;
+					object.position.x = random(-roomSize / 2 + 1, roomSize / 2 - 1);
+					object.position.y = random(0, roomSize);
+					object.position.z = random(-roomSize / 2 + 1, roomSize / 2 - 1);
 
 					object.userData.velocity = new THREE.Vector3();
-					object.userData.velocity.x = Math.random() * 0.01 - 0.005;
-					object.userData.velocity.y = Math.random() * 0.01 - 0.005;
-					object.userData.velocity.z = Math.random() * 0.01 - 0.005;
+					object.userData.velocity.x = random(-0.005, 0.005);
+					object.userData.velocity.y = random(-0.005, 0.005);
+					object.userData.velocity.z = random(-0.005, 0.005);
 
 					room.add(object);
 				}
@@ -176,9 +186,9 @@
 					var object = room.children[count++];
 
 					object.position.copy(controller.position);
-					object.userData.velocity.x = (Math.random() - 0.5) * 3;
-					object.userData.velocity.y = (Math.random() - 0.5) * 3;
-					object.userData.velocity.z = Math.random() - 9;
+					object.userData.velocity.x = random(-1.5, 1.5);
+					object.userData.velocity.y = random(-1.5, 1.5);
+					object.userData.velocity.z = random(-9, -8);
 					object.userData.velocity.applyQuaternion(controller.quaternion);
 
 					if (count === room.children.length) count = 0;
@@ -197,9 +207,9 @@
 
 				//
 
-				var delta = clock.getDelta() * 0.8; // slow down simulation
+				var delta = clock.getDelta(); // * 0.8; // slow down simulation
 
-				var range = 3 - radius;
+				var range = roomSize / 2 - radius;
 
 				for (var i = 0; i < room.children.length; i++) {
 					var object = room.children[i];
@@ -208,23 +218,24 @@
 					object.position.y += object.userData.velocity.y * delta;
 					object.position.z += object.userData.velocity.z * delta;
 
-					// keep objects inside room
-
+					// Bounce of walls
 					if (object.position.x < -range || object.position.x > range) {
 						object.position.x = THREE.Math.clamp(
 							object.position.x,
 							-range,
 							range
 						);
-						object.userData.velocity.x = -object.userData.velocity.x;
+						object.userData.velocity.x =
+							-object.userData.velocity.x * dampening;
 					}
 
-					if (object.position.y < radius || object.position.y > 6) {
+					if (object.position.y < radius || object.position.y > roomSize) {
 						object.position.y = Math.max(object.position.y, radius);
 
-						object.userData.velocity.x *= 0.98;
-						object.userData.velocity.y = -object.userData.velocity.y * 0.8;
-						object.userData.velocity.z *= 0.98;
+						object.userData.velocity.x *= dampening;
+						object.userData.velocity.y =
+							-object.userData.velocity.y * dampening;
+						object.userData.velocity.z *= dampening;
 					}
 
 					if (object.position.z < -range || object.position.z > range) {
@@ -233,9 +244,11 @@
 							-range,
 							range
 						);
-						object.userData.velocity.z = -object.userData.velocity.z;
+						object.userData.velocity.z =
+							-object.userData.velocity.z * dampening;
 					}
 
+					// Bounce of other balls
 					for (var j = i + 1; j < room.children.length; j++) {
 						var object2 = room.children[j];
 
@@ -262,10 +275,15 @@
 						}
 					}
 
+					// Gravity
 					object.userData.velocity.y -= 9.8 * delta;
 				}
 
 				renderer.render(scene, camera);
+			}
+
+			function random(a, b) {
+				return Math.random() * (b - a) + a;
 			}
 		</script>
 	</body>
