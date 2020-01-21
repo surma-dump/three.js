@@ -86,14 +86,10 @@
 						geometry,
 						new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff })
 					);
-
-					object.position.x = positions[i * 3 + 0];
-					object.position.y = positions[i * 3 + 1];
-					object.position.z = positions[i * 3 + 2];
-
 					room.add(object);
 				}
-				ballShooter.put(Comlink.transfer(positions, [positions.buffer]));
+
+				await updateBallPositions(ballShooter, room);
 
 				//
 
@@ -199,6 +195,16 @@
 				}
 			}
 
+			async function updateBallPositions(ballShooter, room) {
+				var positions = new Float32Array(await ballShooter.getPositions());
+				for (var i = 0; i < room.children.length; i++) {
+					var object = room.children[i];
+					object.position.x = positions[i * 3 + 0];
+					object.position.y = positions[i * 3 + 1];
+					object.position.z = positions[i * 3 + 2];
+				}
+				ballShooter.put(Comlink.transfer(positions, [positions.buffer]));
+			}
 			//
 
 			function animate() {
