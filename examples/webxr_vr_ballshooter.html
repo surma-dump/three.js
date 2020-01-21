@@ -48,6 +48,7 @@
 			var worker = new Worker("./webxr_vr_ballshooter/worker.js");
 			var BallShooter = Comlink.wrap(worker);
 			var ballShooter;
+			var positions;
 
 			init().then(() => animate());
 
@@ -81,7 +82,6 @@
 				scene.add(light);
 
 				var geometry = new THREE.IcosahedronBufferGeometry(radius, 2);
-				var positions = new Float32Array(await ballShooter.getPositions());
 
 				for (var i = 0; i < ballCount; i++) {
 					var object = new THREE.Mesh(
@@ -91,7 +91,15 @@
 					room.add(object);
 				}
 
-				await updateBallPositions(ballShooter, room);
+				positions = await ballShooter.getPositions();
+				updateBallPositions();
+				await ballShooter.setCallback(
+					Comlink.proxy(buffer => {
+						var oldBuffer = positions;
+						positions = buffer;
+						ballShooter.put(Comlink.transfer(oldBuffer, [oldBuffer]));
+					})
+				);
 
 				//
 
@@ -197,15 +205,15 @@
 				}
 			}
 
-			async function updateBallPositions(ballShooter, room) {
-				var positions = new Float32Array(await ballShooter.getPositions());
+			async function updateBallPositions() {
+				// console.log(positions)
+				var positionsB = new Float32Array(positions);
 				for (var i = 0; i < room.children.length; i++) {
 					var object = room.children[i];
-					object.position.x = positions[i * 3 + 0];
-					object.position.y = positions[i * 3 + 1];
-					object.position.z = positions[i * 3 + 2];
+					object.position.x = positionsB[i * 3 + 0];
+					object.position.y = positionsB[i * 3 + 1];
+					object.position.z = positionsB[i * 3 + 2];
 				}
-				ballShooter.put(Comlink.transfer(positions, [positions.buffer]));
 			}
 			//
 
@@ -218,7 +226,7 @@
 				handleController(controller1);
 				handleController(controller2);
 
-				await updateBallPositions(ballShooter, room);
+				updateBallPositions();
 				//
 				renderer.render(scene, camera);
 			}

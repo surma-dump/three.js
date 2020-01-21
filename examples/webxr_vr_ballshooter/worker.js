@@ -39,6 +39,10 @@ class BallShooter {
 		this._init();
 	}
 
+	setCallback(cb) {
+		this._cb = cb;
+	}
+
 	_init() {
 		for (var i = 0; i < this._numBalls; i++) {
 			this._positions[i * 3 + 0] = random(
@@ -85,6 +89,8 @@ class BallShooter {
 		///
 		this._doPhysics(delta / 1000);
 		this._commit();
+		const positions = this.getPositions();
+		this._cb(Comlink.transfer(positions, [positions]));
 		///
 		this._lastFrame = currentFrame;
 		if (this._running) {
