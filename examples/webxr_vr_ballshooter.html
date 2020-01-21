@@ -30,9 +30,9 @@
 			var room;
 
 			// Field of View
-			var fov = 50;
+			var fov = 120;
 			// Number of balls;
-			var ballCount = 200;
+			var ballCount = 2000;
 			// Radius of one ball
 			var radius = 0.08;
 			// Size of the room
@@ -54,7 +54,9 @@
 			async function init() {
 				ballShooter = await new BallShooter({
 					numBalls: ballCount,
-					roomSize
+					roomSize,
+					radius,
+					dampening
 				});
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color(0x505050);
@@ -209,86 +211,15 @@
 
 			function animate() {
 				renderer.setAnimationLoop(render);
+				ballShooter.start();
 			}
 
-			function render() {
+			async function render() {
 				handleController(controller1);
 				handleController(controller2);
 
+				await updateBallPositions(ballShooter, room);
 				//
-
-				var delta = clock.getDelta(); // * 0.8; // slow down simulation
-
-				var range = roomSize / 2 - radius;
-				/*
-				for (var i = 0; i < room.children.length; i++) {
-					var object = room.children[i];
-
-					object.position.x += object.userData.velocity.x * delta;
-					object.position.y += object.userData.velocity.y * delta;
-					object.position.z += object.userData.velocity.z * delta;
-
-					// Bounce of walls
-					if (object.position.x < -range || object.position.x > range) {
-						object.position.x = THREE.Math.clamp(
-							object.position.x,
-							-range,
-							range
-						);
-						object.userData.velocity.x =
-							-object.userData.velocity.x * dampening;
-					}
-
-					if (object.position.y < radius || object.position.y > roomSize) {
-						object.position.y = Math.max(object.position.y, radius);
-
-						object.userData.velocity.x *= dampening;
-						object.userData.velocity.y =
-							-object.userData.velocity.y * dampening;
-						object.userData.velocity.z *= dampening;
-					}
-
-					if (object.position.z < -range || object.position.z > range) {
-						object.position.z = THREE.Math.clamp(
-							object.position.z,
-							-range,
-							range
-						);
-						object.userData.velocity.z =
-							-object.userData.velocity.z * dampening;
-					}
-
-					// Bounce of other balls
-					for (var j = i + 1; j < room.children.length; j++) {
-						var object2 = room.children[j];
-
-						normal.copy(object.position).sub(object2.position);
-
-						var distance = normal.length();
-
-						if (distance < 2 * radius) {
-							normal.multiplyScalar(0.5 * distance - radius);
-
-							object.position.sub(normal);
-							object2.position.add(normal);
-
-							normal.normalize();
-
-							relativeVelocity
-								.copy(object.userData.velocity)
-								.sub(object2.userData.velocity);
-
-							normal = normal.multiplyScalar(relativeVelocity.dot(normal));
-
-							object.userData.velocity.sub(normal);
-							object2.userData.velocity.add(normal);
-						}
-					}
-
-					// Gravity
-					object.userData.velocity.y -= 9.8 * delta;
-				}*/
-
 				renderer.render(scene, camera);
 			}
 
